@@ -1,0 +1,12 @@
+*/15 8-22 * * 1-5 /Users/rebeccakrall/Code/Proposal-Report-Pipeline/dist/template_filler
+
+
+
+*/15 8-22 * * 1-5 conda activate pra; python /Users/rebeccakrall/Code/Proposal-Report-Pipeline/automated_report.py; conda deactivate
+
+*/15 8-22 * * 1-5 conda activate pra; python /Users/rebeccakrall/Code/Proposal-Report-Pipeline/automated_report.py; conda deactivate
+
+
+
+
+*/15 8-22 * * 1-5 /Users/rebeccakrall/miniconda3/envs/pra/bin/python /Users/rebeccakrall/Code/Proposal-Report-Pipeline/automated_report.py
