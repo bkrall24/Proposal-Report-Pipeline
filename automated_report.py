@@ -21,7 +21,10 @@ if __name__ == "__main__":
     unmatched = [p for r,p in zip(proposal_names, current_proposals) if r not in report_names]
     for u in unmatched:
         proposal_path = os.path.join(proposal_dir, u)
-        temp, save_path = proposal_to_report(proposal_path, save_path = report_dir)
+        try:
+            temp, save_path = proposal_to_report(proposal_path, save_path = report_dir)
+        except:
+            print(u + " failed")
 
     logfile = "/Users/rebeccakrall/Code/Proposal-Report-Pipeline/report.txt"
     with open(logfile, 'a') as f:

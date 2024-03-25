@@ -264,7 +264,7 @@ def proposal_to_report(input_path, save_path = None, save = True, template_path 
     if not replace['pc'] is None:
         pc_sig = find_signature(replace['pc'])
         pc_image = InlineImage(template, image_descriptor=pc_sig, width= Mm(30), height= Mm(15))
-        replace['pc_signature'] = pm_image
+        replace['pc_signature'] = pc_image
 
 
 

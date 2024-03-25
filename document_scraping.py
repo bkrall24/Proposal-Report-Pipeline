@@ -3,10 +3,17 @@ import re
 from docx import Document, table, text
 import pandas as pd
 
-def document_TOC(input):
-
-    toc_ind = [ind for ind,p in enumerate(input.paragraphs) if p.text == 'TABLE OF CONTENTS']
+def document_TOC(input, toc_name = "TABLE OF CONTENTS"):
+    
+    toc_ind = [ind for ind,p in enumerate(input.paragraphs) if toc_name.lower() in p.text.lower()]
+    # toc_ind = [ind for ind,p in enumerate(input.paragraphs) if p.text == toc_name]
     toc = [p.text for p in input.paragraphs[toc_ind[0]:] if bool(re.search(r'\t+\d', p.text))]
+    # toc = []
+    # c_ind= []
+    # for ind, p in enumerate(input.paragraphs):
+    #     if bool(re.search(r'\t+\d', p.text)):
+    #         toc.append(p.text)
+    #         c_ind.append(ind)
 
     titles = []
     levels = []
@@ -19,8 +26,14 @@ def document_TOC(input):
             levels.append(len(nums))
 
     index = np.array([ind for ind, paragraph in enumerate(input.paragraphs) if paragraph.text.strip() in titles and "Heading" in paragraph.style.name])
-    titles = [t.strip().replace(' ', '_') for t in titles]
+    
 
+    if len(index) != len(titles):
+        found = [titles.index(input.paragraphs[i].text.strip()) for i in index]
+        titles = [titles[i] for i in found]
+        levels = [levels[i] for i in found]
+
+    titles = [t.strip().replace(' ', '_') for t in titles]
     data_ind = {}
     data_ind["Title_Page"] = (0, toc_ind[0])
     data_ind["TABLE_OF_CONTENTS"] = (toc_ind[0], index[0])
@@ -382,7 +395,6 @@ def scrape_method_data(doc, data_ind, assay_doc = "/Users/rebeccakrall/Data/Prop
 
     return methods, codes, method_headings
 
-
 def scrape_abbreviations(doc, data_ind):
     k = find_string_list(['Abbreviations'], data_ind.keys())
     if k is not None:
@@ -393,3 +405,92 @@ def scrape_abbreviations(doc, data_ind):
     else:
         return None
     
+def scrape_design_data(input, data_ind):
+
+    d = {}
+    k = find_string_list(['Design'], data_ind.keys())
+    if k is not None:
+        start,end = data_ind[k]
+        ad_dict = delineated_para_list(input.paragraphs[start:end])
+
+        standard_design = ["dose volume", "formulation", "dose levels", "dose frequency", "study duration", "pretreatment time", "number of groups",
+                        "number of animals per group", "total number of animals"]
+
+        
+        for k in ad_dict.keys():
+            found = False
+            for s in standard_design:
+                if (k.lower() in s) or (s in k.lower()):
+                    d[s] = ad_dict[k]
+                    found = True
+
+            if ("route(s) of administration" in k.lower()) or (("route" in k.lower()) and ("adminstration" in k.lower())):
+                d["route of administration"] = ad_dict[k]
+                found = True
+            
+            if found is False:
+                d[k] = ad_dict[k]
+             
+    else:
+        d = None
+    return d
+
+
+
+def scrape_design_tables(tables, study_id):
+    all_design = []
+    for t in tables:
+        try:
+            mdf = get_design_table(t, study_id)
+            if mdf is not None:
+                all_design.append(mdf)
+        except:
+            print('table failed')
+    
+    merged_df = pd.concat(all_design, ignore_index = True)
+    return merged_df
+
+def get_design_table(table, study_id):
+    
+    # assume the first row contains table headers
+    cols = [cell.text.lower() for cell in table.rows[0].cells]
+
+    # make a dataframe containing the remaining rows
+    data = []
+    for i, row in enumerate(table.rows[1:]):
+        text = [cell.text.lower() for cell in row.cells]
+
+        row_data = dict(zip(cols, text))
+        data.append(row_data)
+    df = pd.DataFrame(data)
+
+    # identify columns containing 'treatment' to add as option in table
+    treatments = [a for  a in df.columns if 'treatment' in a]
+
+    # identify expected columns
+    col_ind = []
+    rn = {}
+    target_cols = ['group #', 'group size', 'days', 'dose', 'route']
+    for ind, c in enumerate(cols):
+        for t in target_cols:
+            if t in c:
+                col_ind.append(c)
+                rn[c] = t
+    
+    # pull out corresponding dataframes for each treatment, adding study_id 
+    df['study_id'] = study_id
+    all_treats = []
+    for t in treatments:
+        rn[t] = 'treatment'
+        treat = df.loc[:, ['study_id'] + [t] + col_ind]
+        treat = treat.rename(columns = rn)
+        all_treats.append(treat)
+
+    # combine to a single dataframe
+    if len(all_treats):
+        merged_df = pd.concat(all_treats, ignore_index = True)
+    else:
+        merged_df = None
+    
+
+    return merged_df

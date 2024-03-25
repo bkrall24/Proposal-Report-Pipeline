@@ -90,18 +90,29 @@ def past_tensify(txt):
 
                     # If verb is in specific form and not proceeded by 'to', change the tense. Note, I exclude 'see' here because proposals sometimes say
                     # "see table 1" or similar. 
-                    if (tag in ['VB', 'VBP']) and ( word.text.lower() != 'see') and out[-1].text.lower() != 'to': # removed VBN and VBZ as a test
+                    cond = (tag in ['VB', 'VBP']) and ( word.text.lower() != 'see')
 
-                        if word.lemma_ == 'be':
-                            if plural == 'Sing':
-                                new_word = 'was'
-                            else:
-                                new_word = 'were'
-                        else:      
-                            if plural == 'Sing':
-                                new_word = word._.inflect('VBD', form_num = 0)
-                            else:
-                                new_word = word._.inflect('VBD', form_num = 1)
+                    if len(out) > 0:
+                        cond2 = out[-1].text.lower() != 'to'
+                    else:
+                        cond2 = True
+
+                    if cond & cond2:
+                    # if (tag in ['VB', 'VBP']) and ( word.text.lower() != 'see'): 
+
+                    #     if len(out) > 0:
+                    #         if out[-1].text.lower() != 'to': # removed VBN and VBZ as a test
+
+                            if word.lemma_ == 'be':
+                                if plural == 'Sing':
+                                    new_word = 'was'
+                                else:
+                                    new_word = 'were'
+                            else:      
+                                if plural == 'Sing':
+                                    new_word = word._.inflect('VBD', form_num = 0)
+                                else:
+                                    new_word = word._.inflect('VBD', form_num = 1)
 
                     # If not the specific type of verb, just append the word 
                     # elif new_word is None:
